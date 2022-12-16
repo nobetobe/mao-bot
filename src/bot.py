@@ -1,4 +1,6 @@
 import os
+import codecs
+import time
 
 import discord
 from discord.ext import commands
@@ -9,6 +11,14 @@ TOKEN: str = open("../key.txt").read()
 
 # 'client' is intentionally misspelled
 clinet: discord.Client = commands.Bot(command_prefix="$")
+
+
+@clinet.event
+async def on_ready():
+    global log
+    log = codecs.open("../log.txt", "a", "utf-8")
+    log.write(f"\n{time.ctime(time.time())} : Logged in as {str(clinet.user)}\n")
+    return 1
 
 
 # voice commands and events
@@ -70,6 +80,38 @@ async def songlist(ctx: commands.context.Context):
     await ctx.send(f"Available songs: {[song_name[:-4] for song_name in os.listdir('../resources/music')]}")
     return 1
 # -------------------------
+
+
+# Message event
+def log_message(message: discord.Message):
+    if not message.channel.type == discord.ChannelType.private:
+        channel_name: str = str(message.channel.name)
+    else:
+        channel_name: str = str(message.channel)
+    log.write(f"{time.ctime(time.time())} : {message.guild.name} : {channel_name} : {str(message.author)} : {str(message.content)}\n")
+    return 1
+
+
+@clinet.event
+async def on_message(message: discord.Message):
+    author: discord.member.Member = message.author
+    if author == clinet.user:
+        return
+    user_name, user_tag = str(author).split("#")
+    content: str = str(message.content)
+    channel: discord.ChannelType = message.channel
+    if not channel.type == discord.ChannelType.private:
+        channel_name: str = str(channel.name)
+    else:
+        channel_name: str = str(channel)
+    
+    log_message(message)
+
+    # message processing goes here
+
+    await clinet.process_commands(message)
+    return 1
+# -------------
 
 
 # Error handling
