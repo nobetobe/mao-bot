@@ -13,7 +13,7 @@ clinet: discord.Client = commands.Bot(command_prefix="$")
 
 # voice commands and events
 @clinet.command(pass_context=True)
-async def join(ctx):
+async def join(ctx: commands.context.Context):
     if not ctx.author.voice:
         await ctx.reply("You must be connected to a voice channel for me to join.")
         return
@@ -29,7 +29,7 @@ async def join(ctx):
 
 
 @clinet.command(pass_context=True)
-async def leave(ctx):
+async def leave(ctx: commands.context.Context):
     if not ctx.voice_client:
         await ctx.reply("I'm not in a voice channel.")
         return
@@ -43,7 +43,7 @@ async def leave(ctx):
 
 
 @clinet.command(pass_context=True)
-async def play(ctx, *song_name: str):
+async def play(ctx: commands.context.Context, *song_name: str):
     if song_name == ():
         await ctx.reply("You must specify a song name")
         return
@@ -61,15 +61,28 @@ async def play(ctx, *song_name: str):
     if voice_client.is_playing():
         voice_client.stop()
 
-    audio_source = discord.FFmpegPCMAudio(song_path)
-    player = voice_client.play(source=audio_source, after=None)
-    return player
+    audio_source: discord.FFmpegPCMAudio = discord.FFmpegPCMAudio(song_path)
+    voice_client.play(source=audio_source, after=None)
+    return 1
 
 @clinet.command(pass_context=True)
-async def songlist(ctx):
+async def songlist(ctx: commands.context.Context):
     await ctx.send(f"Available songs: {[song_name[:-4] for song_name in os.listdir('../resources/music')]}")
     return 1
 # -------------------------
+
+
+# Error handling
+@clinet.event
+async def on_command_error(ctx: commands.context.Context, error: commands.errors.CommandError):
+    match error:
+        case commands.errors.CommandNotFound():
+            message: str = "I don't know that command."
+        case _:
+            pass
+    await ctx.reply(message)
+    return 1
+# --------------
 
 
 clinet.run(TOKEN)
