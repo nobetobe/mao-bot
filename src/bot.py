@@ -1,6 +1,9 @@
 import os
-import codecs
 import time
+import codecs
+import urllib
+import aiohttp
+import xml.etree.ElementTree as ET
 
 import discord
 from discord.ext import commands
@@ -17,7 +20,9 @@ clinet: discord.Client = commands.Bot(command_prefix="$")
 async def on_ready():
     global log
     log = codecs.open("../log.txt", "a", "utf-8")
-    log.write(f"\n{time.ctime(time.time())} : Logged in as {str(clinet.user)}\n")
+    message: str = f"\n{time.ctime(time.time())} : Logged in as {str(clinet.user)}\n"
+    log.write(message)
+    print(message)
     return 1
 
 
@@ -107,11 +112,66 @@ async def on_message(message: discord.Message):
     
     log_message(message)
 
-    # message processing goes here
+
+    match content.lower():
+        case "hello":
+            response = f"what do you want {user_name}"
+        case "fr":
+            response = "(French Revolution)"
+        case "who":
+            response = "asked"
+        case "zamn!":
+            response = 0
+            with open("resources/photos/cudi.png", "rb") as file:
+                attachment = discord.File(file)
+        case "zamn":
+            response = 0
+            with open("resources/photos/cudi.png", "rb") as file:
+                attachment = discord.File(file)
+        case _:
+            if "penis" in content.lower():
+                response = "<@873372117729681438>"
+            elif "zaza" in content.lower():
+                response = 0
+                with open("resources/photos/clonk.png", "rb") as file:
+                    attachment = discord.File(file)
+            elif "morbius" in content.lower():
+                response = 0
+                with open("resources/photos/morbius.png", "rb") as file:
+                    attachment = discord.File(file)
+            elif "tesla" in content.lower():
+                response = 0
+                with open("resources/photos/tesla.gif", "rb") as file:
+                    attachment = discord.File(file)
+            elif user_name == "Bongo":
+                response = "stfu bongo"
+        
+    if response:
+        await message.channel.send(response)
+    else:
+        await message.channel.send(file=attachment)
 
     await clinet.process_commands(message)
     return 1
 # -------------
+
+
+# API call stuff
+
+# Call to Wolfram Alpha API
+@clinet.command(pass_context=True)
+async def wa(ctx: commands.context.Context, *message):
+    message: str = " ".join(message)
+    message: str = urllib.parse.quote(message, safe="")
+    API_URL: str = open("../apis/wolfram alpha.txt").read()
+    full_URL: str = f"{API_URL}&input={message}&units=metric"
+    async with aiohttp.ClientSession() as cs:
+        async with cs.get(full_URL) as response:
+            response: bytes = await response.read()
+            await ctx.send(response.decode("utf-8"))
+            return 1
+
+# --------------
 
 
 # Error handling
@@ -121,7 +181,7 @@ async def on_command_error(ctx: commands.context.Context, error: commands.errors
         case commands.errors.CommandNotFound():
             message: str = "I don't know that command."
         case _:
-            pass
+            message: str = error
     await ctx.reply(message)
     return 1
 # --------------

@@ -1,3 +1,6 @@
 key.txt
+log.txt
+
 .vscode/
-resources/music/
+resources/
+apis/
