@@ -143,6 +143,7 @@ async def on_message(message: discord.Message):
                 await message.delete()
                 await message.channel.send("you posted a banned image")
 
+    reponse = 2
     match content.lower():
         case "hello":
             response = f"what do you want {user_name}"
@@ -176,9 +177,9 @@ async def on_message(message: discord.Message):
             elif user_name == "Bongo":
                 response = "stfu bongo"
         
-    if response:
+    if response == 1:
         await message.channel.send(response)
-    else:
+    elif response == 0:
         await message.channel.send(file=attachment)
 
     await clinet.process_commands(message)
