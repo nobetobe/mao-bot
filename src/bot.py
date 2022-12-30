@@ -127,21 +127,22 @@ async def on_message(message: discord.Message):
     log_message(message)
 
 
-    for attachment in message.attachments:
-        if attachment.filename.split('.')[-1] in ['bmp', 'jpeg', 'jpg', 'png']:
-            fp = io.BytesIO()
-            await attachment.save(fp)
-            fp.seek(0)
-            img = Image.open(fp)
-            img = np.asarray(img)
-            img = resize(img, (224, 224), anti_aliasing=True)
-            img -= np.min(img)
-            if np.max(img) != 0:
-                img /= np.max(img)
-            pred = drake_prediction_model.predict(np.expand_dims(img[:, :, :3], axis=0)).round()[0][0]
-            if pred:
-                await message.delete()
-                await message.channel.send("you posted a banned image")
+    if enable_anti_drake:
+        for attachment in message.attachments:
+            if attachment.filename.split('.')[-1] in ['bmp', 'jpeg', 'jpg', 'png']:
+                fp = io.BytesIO()
+                await attachment.save(fp)
+                fp.seek(0)
+                img = Image.open(fp)
+                img = np.asarray(img)
+                img = resize(img, (224, 224), anti_aliasing=True)
+                img -= np.min(img)
+                if np.max(img) != 0:
+                    img /= np.max(img)
+                pred = drake_prediction_model.predict(np.expand_dims(img[:, :, :3], axis=0)).round()[0][0]
+                if pred:
+                    await message.delete()
+                    await message.channel.send("you posted a banned image")
 
     reponse = 2
     match content.lower():
