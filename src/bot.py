@@ -2,6 +2,7 @@ import io
 import os
 import time
 import codecs
+import shutil
 import urllib
 import aiohttp
 import numpy as np
