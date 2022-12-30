@@ -27,6 +27,8 @@ async def on_ready():
     global drake_prediction_model
     drake_prediction_model = tf.keras.models.load_model('resources/drake-model/')
     message: str = f"\n{time.ctime(time.time())} : Logged in as {str(clinet.user)}\n"
+    global enable_anti_drake
+    enable_anti_drake = False
     log.write(message)
     print(message)
     return 1
@@ -100,6 +102,12 @@ def log_message(message: discord.Message):
     else:
         channel_name: str = str(message.channel)
     log.write(f"{time.ctime(time.time())} : {message.guild.name} : {channel_name} : {str(message.author)} : {str(message.content)}\n")
+    return 1
+
+
+@clinet.command(pass_context=True)
+async def toggle_anti_drake(ctx: commands.context.Context):
+    enable_anti_drake = not enable_anti_drake
     return 1
 
 
