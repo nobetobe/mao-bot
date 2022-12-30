@@ -1,16 +1,20 @@
+import io
 import os
 import time
 import codecs
 import urllib
 import aiohttp
-import xml.etree.ElementTree as ET
+import numpy as np
+from PIL import Image
+import tensorflow as tf
+from skimage.transform import resize
 
 import discord
 from discord.ext import commands
 from discord import utils
 
 # MAKE SURE TO PLACE key.txt CONTAINING YOUR TOKEN IN THE ROOT FOLDER
-TOKEN: str = open("../key.txt").read()
+TOKEN: str = open("key.txt").read()
 
 # 'client' is intentionally misspelled
 clinet: discord.Client = commands.Bot(command_prefix="$")
@@ -19,7 +23,9 @@ clinet: discord.Client = commands.Bot(command_prefix="$")
 @clinet.event
 async def on_ready():
     global log
-    log = codecs.open("../log.txt", "a", "utf-8")
+    log = codecs.open("log.txt", "a", "utf-8")
+    global drake_prediction_model
+    drake_prediction_model = tf.keras.models.load_model('resources/drake-model/')
     message: str = f"\n{time.ctime(time.time())} : Logged in as {str(clinet.user)}\n"
     log.write(message)
     print(message)
@@ -64,7 +70,7 @@ async def play(ctx: commands.context.Context, *song_name: str):
         return
     
     song_name: str = " ".join(song_name).lower().strip()
-    song_path: str = f"../resources/music/{song_name}.mp3"
+    song_path: str = f"resources/music/{song_name}.mp3"
     if not os.path.exists(song_path):
         await ctx.reply("Couldn't find that song. Type $songlist show available songs.")
         return
@@ -82,7 +88,7 @@ async def play(ctx: commands.context.Context, *song_name: str):
 
 @clinet.command(pass_context=True)
 async def songlist(ctx: commands.context.Context):
-    await ctx.send(f"Available songs: {[song_name[:-4] for song_name in os.listdir('../resources/music')]}")
+    await ctx.send(f"Available songs: {[song_name[:-4] for song_name in os.listdir('resources/music')]}")
     return 1
 # -------------------------
 
@@ -112,6 +118,22 @@ async def on_message(message: discord.Message):
     
     log_message(message)
 
+
+    for attachment in message.attachments:
+        if attachment.filename.split('.')[-1] in ['bmp', 'jpeg', 'jpg', 'png']:
+            fp = io.BytesIO()
+            await attachment.save(fp)
+            fp.seek(0)
+            img = Image.open(fp)
+            img = np.asarray(img)
+            img = resize(img, (224, 224), anti_aliasing=True)
+            img -= np.min(img)
+            if np.max(img) != 0:
+                img /= np.max(img)
+            pred = drake_prediction_model.predict(np.expand_dims(img[:, :, :3], axis=0)).round()[0][0]
+            if pred:
+                await message.delete()
+                await message.channel.send("you posted a banned image")
 
     match content.lower():
         case "hello":
@@ -163,7 +185,7 @@ async def on_message(message: discord.Message):
 async def wa(ctx: commands.context.Context, *message):
     message: str = " ".join(message)
     message: str = urllib.parse.quote(message, safe="")
-    API_URL: str = open("../apis/wolfram alpha.txt").read()
+    API_URL: str = open("apis/wolfram alpha.txt").read()
     full_URL: str = f"{API_URL}&input={message}&units=metric"
     async with aiohttp.ClientSession() as cs:
         async with cs.get(full_URL) as response:
