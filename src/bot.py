@@ -24,11 +24,11 @@ clinet: discord.Client = commands.Bot(command_prefix="$")
 async def on_ready():
     global log
     log = codecs.open("log.txt", "a", "utf-8")
-    global drake_prediction_model
-    drake_prediction_model = tf.keras.models.load_model('resources/drake-model/')
     message: str = f"\n{time.ctime(time.time())} : Logged in as {str(clinet.user)}\n"
     global enable_anti_drake
     enable_anti_drake = False
+    global drake_prediction_model
+    drake_prediction_model = tf.keras.models.load_model('resources/drake-model/')
     log.write(message)
     print(message)
     return 1
@@ -144,7 +144,7 @@ async def on_message(message: discord.Message):
                     await message.delete()
                     await message.channel.send("you posted a banned image")
 
-    reponse = 2
+    response = 2
     match content.lower():
         case "hello":
             response = f"what do you want {user_name}"
