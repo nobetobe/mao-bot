@@ -1,14 +1,10 @@
-import io
 import os
 import time
 import codecs
-import shutil
 import urllib
 import aiohttp
-import numpy as np
-from PIL import Image
+import asyncio
 import tensorflow as tf
-from skimage.transform import resize
 
 import discord
 from discord.ext import commands
@@ -26,11 +22,8 @@ async def on_ready():
     global log
     log = codecs.open("log.txt", "a", "utf-8")
     message: str = f"\n{time.ctime(time.time())} : Logged in as {str(clinet.user)}\n"
-    global enable_anti_drake
-    enable_anti_drake = False
-    global drake_prediction_model
-    drake_prediction_model = tf.keras.models.load_model('resources/drake-model/')
     log.write(message)
+
     print(message)
     return 1
 
@@ -98,17 +91,13 @@ async def songlist(ctx: commands.context.Context):
 
 # Message event
 def log_message(message: discord.Message):
+    global log
+    
     if not message.channel.type == discord.ChannelType.private:
         channel_name: str = str(message.channel.name)
     else:
         channel_name: str = str(message.channel)
     log.write(f"{time.ctime(time.time())} : {message.guild.name} : {channel_name} : {str(message.author)} : {str(message.content)}\n")
-    return 1
-
-
-@clinet.command(pass_context=True)
-async def toggle_anti_drake(ctx: commands.context.Context):
-    enable_anti_drake = not enable_anti_drake
     return 1
 
 
@@ -127,23 +116,6 @@ async def on_message(message: discord.Message):
     
     log_message(message)
 
-
-    if enable_anti_drake:
-        for attachment in message.attachments:
-            if attachment.filename.split('.')[-1] in ['bmp', 'jpeg', 'jpg', 'png']:
-                fp = io.BytesIO()
-                await attachment.save(fp)
-                fp.seek(0)
-                img = Image.open(fp)
-                img = np.asarray(img)
-                img = resize(img, (224, 224), anti_aliasing=True)
-                img -= np.min(img)
-                if np.max(img) != 0:
-                    img /= np.max(img)
-                pred = drake_prediction_model.predict(np.expand_dims(img[:, :, :3], axis=0)).round()[0][0]
-                if pred:
-                    await message.delete()
-                    await message.channel.send("you posted a banned image")
 
     response = 2
     match content.lower():
@@ -187,6 +159,30 @@ async def on_message(message: discord.Message):
     await clinet.process_commands(message)
     return 1
 # -------------
+
+
+# MISC
+@clinet.command(pass_context=True)
+async def say_periodic(ctx: commands.context.Context, user_id: str, channel_name: str, message: str, time_minutes: str):
+    global is_med_time_running
+    is_med_time_running = True
+    channel: discord.channel.TextChannel = utils.get(ctx.guild.channels, name=channel_name)
+
+    full_message = f"<@{user_id}> {message}"
+    await ctx.channel.send(f"Saying {full_message} in {channel_name} every {max(0.1, float(time_minutes))} minutes")
+    while is_med_time_running:
+        await channel.send(full_message)
+        await asyncio.sleep(60 * max(0.1, float(time_minutes)))
+
+    return 1
+
+@clinet.command(pass_context=True)
+async def stop_say_periodic(ctx):
+    global is_med_time_running
+    is_med_time_running = False
+
+    return 1
+# ----
 
 
 # API call stuff
